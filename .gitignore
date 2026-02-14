@@ -17,9 +17,11 @@ yarn-error.log*
 
 # Generated diagram outputs
 *.svg
-*.png
 *.pdf
 *.layout.json
+# PNG outputs are ignored, except project logo
+*.png
+!diagrammer_logo.png
 
 # Test scratch
 tests/.tmp/
