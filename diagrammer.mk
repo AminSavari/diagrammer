@@ -38,7 +38,7 @@ HIERARCHY_FILE ?= $(build_dir)/model_module_hierarchy.uniquified.json
 
 ifeq ($(LEVEL),L1)
   DIAGRAM_LEVEL_RULES ?= $(DIAGRAMMER_DIR)/rules/L1_soc.yaml
-  DIAGRAM_LEVEL_BASE ?= soc_L1
+  DIAGRAM_LEVEL_BASE ?= L1_soc
 else ifeq ($(LEVEL),L2)
   DIAGRAM_LEVEL_RULES ?=
   DIAGRAM_LEVEL_BASE ?= L2$(if $(strip $(BLOCK)),_$(BLOCK),)
