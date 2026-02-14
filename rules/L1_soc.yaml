@@ -1,0 +1,202 @@
+# L1 SoC architecture view with explicit floorplan and containers.
+include_hops: 4
+drop_isolated: true
+merge_by_label: true
+merge_by_label_scope: label
+edge_labels: descriptive
+connect_via_hidden: true
+max_hidden_hops: 16
+undirected_edges: true
+keep_only_inferred_edges: true
+
+include:
+  - "gemmini"
+  - "rockettile|rocket"
+  - "icache|dcache"
+  - "l2|inclusivecache"
+  - "sbus|systembus"
+  - "fbus|frontbus"
+  - "pbus|peripherybus_pbus"
+  - "cbus|peripherybus_cbus"
+  - "mbus|memorybus"
+  - "uart|serial"
+  - "plic|clint"
+  - "memory|tl2axi4"
+  - "debug"
+  - "bootrom"
+
+hide:
+  - "(^|\\s)ellipse(\\s|$)"
+  - "tlmonitor"
+  - "coupler|interconnectcoupler"
+  - "clock_groups|clocktapnode|clocknameprefixer|frequencyspecifier|resetsynchronizer|clock_gater"
+  - "tilehartidnexusnode|intsource|intsink"
+  - "intsynccrossing|fixedclockbroadcast|fixedclocknode|clockgroup"
+  - "buffer$|buffer_|fragmenter|widget(_\\d+)?$|widget$|queue\\d+|picker|fixer|atomics"
+  - "domain$|clockdomainwrapper|serial_tl_domain|plic_domain|clint_domain"
+  - "error$|wrapped_error_device|reset_setter|bootaddressreg|custom-boot|broadcast|nexus"
+
+clusters:
+  compute:
+    match:
+      - "gemmini|rocket|tile|core|rocc|icache|dcache"
+  bus:
+    match:
+      - "bus|xbar|sbus|fbus|pbus|cbus|mbus"
+  mem:
+    match:
+      - "l2|cache|memory|mbus|axi4|dram|rom"
+  io:
+    match:
+      - "uart|serial|plic|clint"
+  ctrl:
+    match:
+      - "debug|dmi"
+
+rename_nodes:
+  - pattern: "gemmini"
+    as: "Gemmini Accelerator"
+  - pattern: "rockettile|rocket"
+    as: "Rocket Core"
+  - pattern: "icache|dcache"
+    as: "L1 I$/D$ Caches (32KB + 32KB)"
+  - pattern: "(^|_)l2($|_)|inclusivecache"
+    as: "Shared L2 Cache (512KB)"
+  - pattern: "tl2axi4|memory"
+    as: "DRAM Interface (AXI4 64-bit)"
+  - pattern: "sbus|systembus"
+    as: "System Bus (TL-UH 128-bit)"
+  - pattern: "fbus|frontbus"
+    as: "Front Bus (TL-UH 64-bit)"
+  - pattern: "pbus|peripherybus_pbus|cbus|peripherybus_cbus"
+    as: "Periphery Bus (TL-UH 64-bit)"
+  - pattern: "mbus|memorybus"
+    as: "Memory Bus (TL-UH 64-bit)"
+  - pattern: "uart"
+    as: "UART Console"
+  - pattern: "serial_tl|serdesser|serial"
+    as: "Serial Link"
+  - pattern: "plic"
+    as: "Interrupt Controller"
+  - pattern: "clint"
+    as: "Timer and IPI"
+  - pattern: "debug|dmi"
+    as: "Debug Module"
+  - pattern: "bootrom"
+    as: "Boot ROM"
+
+collapse_repeats:
+  - pattern: "debug"
+    as: "Debug Module"
+  - pattern: "serial"
+    as: "Serial Link"
+  - pattern: "uart"
+    as: "UART Console"
+  - pattern: "icache|dcache"
+    as: "L1 I$/D$ Caches (32KB + 32KB)"
+  - pattern: "sbus|systembus"
+    as: "System Bus (TL-UH 128-bit)"
+  - pattern: "fbus|frontbus"
+    as: "Front Bus (TL-UH 64-bit)"
+  - pattern: "pbus|peripherybus_pbus|cbus|peripherybus_cbus"
+    as: "Periphery Bus (TL-UH 64-bit)"
+  - pattern: "mbus|memorybus"
+    as: "Memory Bus (TL-UH 64-bit)"
+  - pattern: "(^|\\s)shared l2 cache(\\s|$)|l2|inclusivecache"
+    as: "Shared L2 Cache (512KB)"
+
+add_nodes:
+  - label: "RoCC Interface"
+    category: "compute"
+
+infer_edges:
+  - from_label: "Gemmini Accelerator"
+    to_label: "RoCC Interface"
+    label: "RoCC"
+    bidirectional: true
+  - from_label: "RoCC Interface"
+    to_label: "Rocket Core"
+    label: "RoCC command/resp"
+    bidirectional: true
+  - from_label: "RoCC Interface"
+    to_label: "L1 I$/D$ Caches (32KB + 32KB)"
+    label: "L1 access path"
+    bidirectional: true
+  - from_label: "Rocket Core"
+    to_label: "L1 I$/D$ Caches (32KB + 32KB)"
+    label: ""
+    bidirectional: true
+  - from_label: "L1 I$/D$ Caches (32KB + 32KB)"
+    to_label: "System Bus (TL-UH 128-bit)"
+    label: "TileLink 128-bit"
+  - from_label: "Gemmini Accelerator"
+    to_label: "System Bus (TL-UH 128-bit)"
+    label: "DMA TL-UH 128-bit"
+  - from_label: "System Bus (TL-UH 128-bit)"
+    to_label: "Front Bus (TL-UH 64-bit)"
+    label: "TL-UH 64-bit"
+  - from_label: "System Bus (TL-UH 128-bit)"
+    to_label: "Periphery Bus (TL-UH 64-bit)"
+    label: "TL-UH 64-bit"
+  - from_label: "System Bus (TL-UH 128-bit)"
+    to_label: "Shared L2 Cache (512KB)"
+    label: "TL-C/TL-UH 128-bit"
+  - from_label: "Shared L2 Cache (512KB)"
+    to_label: "Memory Bus (TL-UH 64-bit)"
+    label: "TL-UH 64-bit"
+  - from_label: "Memory Bus (TL-UH 64-bit)"
+    to_label: "DRAM Interface (AXI4 64-bit)"
+    label: "AXI4 64-bit"
+  - from_label: "Periphery Bus (TL-UH 64-bit)"
+    to_label: "UART Console"
+    label: "TL-UH 64-bit"
+  - from_label: "Periphery Bus (TL-UH 64-bit)"
+    to_label: "Interrupt Controller"
+    label: "TL-UH 64-bit"
+  - from_label: "Periphery Bus (TL-UH 64-bit)"
+    to_label: "Timer and IPI"
+    label: "TL-UH 64-bit"
+  - from_label: "Periphery Bus (TL-UH 64-bit)"
+    to_label: "Debug Module"
+    label: "TL-UH 64-bit"
+
+size:
+  base_area: 5200
+  k: 900
+  min_w: 110
+  max_w: 320
+  min_h: 52
+  max_h: 140
+  grid: 10
+  categories:
+    bus: { metric: 10, aspect: 4.8 }
+    mem: { metric: 8, aspect: 2.6 }
+    compute: { metric: 8, aspect: 1.3 }
+    io: { metric: 5, aspect: 1.7 }
+    ctrl: { metric: 5, aspect: 1.5 }
+
+layout:
+  direction: RIGHT
+  edge_routing: ORTHOGONAL
+  node_node_between_layers: 70
+  node_node: 50
+  crossing_semi_interactive: true
+  consider_model_order: true
+  floorplan: soc_l1
+  category_order: [compute, bus, mem, io, ctrl]
+
+render:
+  show_clusters: false
+  containers:
+    - title: "ChipTop / SoC"
+      all: true
+      class: chiptop
+      padding: 28
+    - title: "Rocket Tile (Core + L1 + RoCC + Gemmini)"
+      class: rockettile
+      padding: 18
+      match_labels:
+        - "^Rocket Core$"
+        - "^Gemmini Accelerator$"
+        - "^RoCC Interface$"
+        - "^L1 I\\$/D\\$ Caches"

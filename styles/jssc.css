@@ -1,0 +1,108 @@
+svg {
+  font-family: Helvetica, Arial, sans-serif;
+  background: #ffffff;
+}
+.layer.wires {
+  pointer-events: none;
+}
+.layer.labels text {
+  user-select: text;
+}
+.clusters .cluster rect {
+  fill: #f3f7ff;
+  stroke: #9bb6e8;
+  stroke-width: 1;
+}
+.clusterTitle {
+  font-size: 11px;
+  font-weight: 600;
+  fill: #365a9c;
+}
+.diagramContainer rect {
+  fill: #f9fbff;
+  stroke: #6b7280;
+  stroke-width: 1.4;
+  stroke-dasharray: 6 3;
+}
+.diagramContainerTitle {
+  font-size: 12px;
+  font-weight: 700;
+  fill: #1f2937;
+}
+.diagramContainer.chiptop rect {
+  stroke: #1f4f96;
+  stroke-width: 1.6;
+  stroke-dasharray: none;
+}
+.diagramContainerTitle.chiptop {
+  fill: #1f4f96;
+}
+.diagramContainer.rockettile rect {
+  stroke: #365a9c;
+}
+.diagramContainerTitle.rockettile {
+  fill: #365a9c;
+}
+.node rect {
+  fill: #f8f8f8;
+  stroke: #222;
+  stroke-width: 1.2;
+}
+.node.collapsed rect {
+  fill: #fff7e8;
+  stroke: #b06d00;
+  stroke-dasharray: none;
+}
+.node.compute rect {
+  fill: #eef5ff;
+}
+.node.mem rect {
+  fill: #eef8ef;
+}
+.node.bus rect {
+  fill: #f7f2ff;
+}
+.node.io rect {
+  fill: #fff4ea;
+}
+.node.ctrl rect {
+  fill: #f3f4f6;
+}
+.edge {
+  fill: none;
+  stroke: #222;
+  stroke-width: 1.4;
+}
+.edge.inferred {
+  stroke: #6b7280;
+  stroke-dasharray: none;
+}
+.edge.bidirectional {
+  stroke: #1f4f96;
+}
+.nodeLabel {
+  font-size: 12px;
+  fill: #111;
+}
+.edgeLabel {
+  font-size: 10px;
+  fill: #333;
+  paint-order: stroke;
+  stroke: #fff;
+  stroke-width: 2px;
+}
+.clusterTitle.compute {
+  fill: #1f4f96;
+}
+.clusterTitle.mem {
+  fill: #236a3f;
+}
+.clusterTitle.bus {
+  fill: #5b3f8f;
+}
+.clusterTitle.io {
+  fill: #9a4f10;
+}
+.clusterTitle.ctrl {
+  fill: #374151;
+}

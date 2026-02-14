@@ -1,0 +1,19 @@
+{
+  "name": "chipyard-diagrammer",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/main.js",
+    "test": "npm run build && node --test tests/*.test.mjs"
+  },
+  "dependencies": {
+    "elkjs": "^0.9.3",
+    "fast-xml-parser": "^4.4.1",
+    "js-yaml": "^4.1.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.4.5"
+  }
+}

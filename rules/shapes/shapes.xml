@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 10 10">
+  <defs>
+    <style>
+      .blk { fill: #f8fbff; stroke: #1f4f96; stroke-width: 2.8; stroke-linejoin: round; stroke-linecap: round; }
+      .txt { font-family: Helvetica, Arial, sans-serif; font-size: 14px; fill: #1f4f96; font-weight: 600; }
+    </style>
+
+    <symbol id="mux2" viewBox="0 0 80 60">
+      <path d="M10,10 L10,50 L55,40 L55,20 Z" class="blk"/>
+      <line x1="55" y1="30" x2="75" y2="30" class="blk"/>
+      <line x1="0" y1="20" x2="10" y2="20" class="blk"/>
+      <line x1="0" y1="40" x2="10" y2="40" class="blk"/>
+      <line x1="32" y1="60" x2="32" y2="50" class="blk"/>
+      <text x="30" y="58" class="txt">S</text>
+      <text x="26" y="34" class="txt">MUX</text>
+    </symbol>
+
+    <symbol id="dff" viewBox="0 0 90 60">
+      <rect x="10" y="10" width="60" height="40" class="blk"/>
+      <path d="M10,35 L20,30 L10,25 Z" class="blk"/>
+      <line x1="0" y1="20" x2="10" y2="20" class="blk"/>
+      <line x1="0" y1="40" x2="10" y2="40" class="blk"/>
+      <line x1="70" y1="30" x2="90" y2="30" class="blk"/>
+      <text x="35" y="35" class="txt">DFF</text>
+    </symbol>
+
+    <symbol id="adder" viewBox="0 0 60 60">
+      <circle cx="30" cy="30" r="18" class="blk"/>
+      <text x="27" y="35" class="txt" style="font-size:18px;">+</text>
+      <line x1="0" y1="20" x2="12" y2="20" class="blk"/>
+      <line x1="0" y1="40" x2="12" y2="40" class="blk"/>
+      <line x1="48" y1="30" x2="60" y2="30" class="blk"/>
+    </symbol>
+
+    <symbol id="cmp" viewBox="0 0 80 60">
+      <path d="M10,10 L10,50 L55,30 Z" class="blk"/>
+      <line x1="0" y1="22" x2="10" y2="22" class="blk"/>
+      <line x1="0" y1="38" x2="10" y2="38" class="blk"/>
+      <line x1="55" y1="30" x2="75" y2="30" class="blk"/>
+      <text x="30" y="35" class="txt" style="font-size:16px;">&gt;</text>
+    </symbol>
+
+    <symbol id="and2" viewBox="0 0 80 60">
+      <path d="M10,10 L35,10 A20,20 0 0 1 35,50 L10,50 Z" class="blk"/>
+      <line x1="0" y1="22" x2="10" y2="22" class="blk"/>
+      <line x1="0" y1="38" x2="10" y2="38" class="blk"/>
+      <line x1="55" y1="30" x2="75" y2="30" class="blk"/>
+    </symbol>
+
+    <symbol id="or2" viewBox="0 0 90 60">
+      <path d="M10,10 C25,10 35,18 42,30 C35,42 25,50 10,50 C18,40 18,20 10,10 M22,14 C40,14 55,20 70,30 C55,40 40,46 22,46" class="blk"/>
+      <line x1="0" y1="22" x2="14" y2="22" class="blk"/>
+      <line x1="0" y1="38" x2="14" y2="38" class="blk"/>
+      <line x1="70" y1="30" x2="88" y2="30" class="blk"/>
+    </symbol>
+
+    <symbol id="xor2" viewBox="0 0 95 60">
+      <path d="M12,10 C20,20 20,40 12,50" class="blk"/>
+      <path d="M18,10 C33,10 43,18 50,30 C43,42 33,50 18,50 C26,40 26,20 18,10 M30,14 C48,14 63,20 78,30 C63,40 48,46 30,46" class="blk"/>
+      <line x1="0" y1="22" x2="18" y2="22" class="blk"/>
+      <line x1="0" y1="38" x2="18" y2="38" class="blk"/>
+      <line x1="78" y1="30" x2="93" y2="30" class="blk"/>
+    </symbol>
+
+    <symbol id="not1" viewBox="0 0 80 60">
+      <path d="M10,10 L10,50 L50,30 Z" class="blk"/>
+      <circle cx="56" cy="30" r="4" class="blk"/>
+      <line x1="0" y1="30" x2="10" y2="30" class="blk"/>
+      <line x1="60" y1="30" x2="78" y2="30" class="blk"/>
+    </symbol>
+  </defs>
+</svg>

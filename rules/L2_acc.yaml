@@ -1,0 +1,13 @@
+clusters:
+  DMA:
+    match:
+      - "DMA"
+  Scratchpad:
+    match:
+      - "Scratch"
+  Compute:
+    match:
+      - "Array"
+      - "PE"
+hide: []
+collapse_repeats: []
