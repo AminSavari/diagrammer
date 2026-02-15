@@ -198,11 +198,11 @@ function routeOrthEdges(graph: Graph): Graph {
     const t = e.target as string;
     const lbl = (e.label ?? "").toLowerCase();
 
-    // RoCC <-> L1 goes over the tile as a clean upper dogleg.
+    // RoCC <-> L1 stays local to the tile to avoid long global detours.
     if (/l1 access path|core<->l1/.test(lbl)) {
       const p0 = sidePoint(s, "top");
       const p1 = sidePoint(t, "top");
-      const laneY = socBand.yTop;
+      const laneY = Math.max(80, Math.min(p0.y, p1.y) - 28);
       return [p0, { x: p0.x, y: laneY }, { x: p1.x, y: laneY }, p1];
     }
 

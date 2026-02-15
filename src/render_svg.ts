@@ -82,6 +82,7 @@ export function renderSvg(graph: Graph, cssPath?: string, rules?: RenderRules): 
   const maxX = Math.max(...graph.nodes.map((n) => (n.x ?? 0) + (n.width ?? 0)), 0) + pad;
   const maxY = Math.max(...graph.nodes.map((n) => (n.y ?? 0) + (n.height ?? 0)), 0) + pad;
   const css = cssPath ? fs.readFileSync(cssPath, "utf8") : "";
+  const canvasScale = Math.max(0.92, Math.min(1.22, maxX / 2100));
 
   const clusterMargin = 18;
   const clusterTitleH = 18;
@@ -151,6 +152,10 @@ export function renderSvg(graph: Graph, cssPath?: string, rules?: RenderRules): 
 
   const edgeLabelDisplay = (raw: string): string => {
     const s = raw.trim();
+    if (!s) return "";
+    if (/^tilelink\s+128-bit$/i.test(s)) return "TL-UH //128";
+    if (/^dma\s+tl-uh\s+128-bit$/i.test(s)) return "DMA TL-UH //128";
+    if (/^rocc command\/resp$/i.test(s)) return "RoCC cmd/rsp";
     const width = s.match(/(\d+)\s*-bit/i)?.[1] ?? s.match(/\/\s*(\d+)/)?.[1];
     const proto = s.match(/AXI4|TL-UH|TileLink|RoCC|TL-C\/TL-UH|core<->L1|L1 access path/i)?.[0];
     if (proto && width) return `${proto} //${width}`;
@@ -164,13 +169,31 @@ export function renderSvg(graph: Graph, cssPath?: string, rules?: RenderRules): 
     const d = pts.map((p, i) => `${i === 0 ? "M" : "L"}${p.x},${p.y}`).join(" ");
     const inferredCls = e.attrs?.inferred === "true" ? " inferred" : "";
     const bidiCls = e.attrs?.bidirectional === "true" ? " bidirectional" : "";
+    const nSrc = graph.nodes.find((n) => n.id === e.source);
+    const nDst = graph.nodes.find((n) => n.id === e.target);
+    const srcL = (nSrc?.label ?? "").toLowerCase();
+    const dstL = (nDst?.label ?? "").toLowerCase();
+    const majorBus =
+      /(system bus|memory bus|periphery bus|front bus)/.test(srcL) ||
+      /(system bus|memory bus|periphery bus|front bus)/.test(dstL);
+    const majorBusCls = majorBus ? " majorBus" : "";
+    const rawLbl = (e.label ?? "").toLowerCase();
+    const bw = (rawLbl.match(/(\d+)\s*-bit/)?.[1] ?? rawLbl.match(/\/\/\s*(\d+)/)?.[1] ?? "");
+    const bwCls = bw ? ` w${bw}` : "";
     const markerStart = e.attrs?.bidirectional === "true" ? ` marker-start="url(#arrowhead-bidi)"` : "";
     const markerEnd = e.attrs?.bidirectional === "true"
       ? ` marker-end="url(#arrowhead-bidi)"`
       : (e.attrs?.inferred === "true" ? ` marker-end="url(#arrowhead-inferred)"` : ` marker-end="url(#arrowhead)"`);
-    return `\n    <path class="edge${inferredCls}${bidiCls}" d="${d}"${markerStart}${markerEnd}/>`;
+    return `\n    <path class="edge${inferredCls}${bidiCls}${majorBusCls}${bwCls}" d="${d}"${markerStart}${markerEnd}/>`;
   }).join("");
 
+  const textFreq = new Map<string, number>();
+  for (const e of graph.edges) {
+    const raw = e.label?.trim();
+    const t = raw ? edgeLabelDisplay(raw) : "";
+    if (!t) continue;
+    textFreq.set(t, (textFreq.get(t) ?? 0) + 1);
+  }
   const labelSlots = new Map<string, number>();
   const seenLabels = new Set<string>();
   const edgeLabels = graph.edges.map((e) => {
@@ -178,6 +201,16 @@ export function renderSvg(graph: Graph, cssPath?: string, rules?: RenderRules): 
     const text = rawText ? edgeLabelDisplay(rawText) : undefined;
     const pts = orthPoints(e.points ?? []);
     if (!text || pts.length < 2) return "";
+    const nSrc = graph.nodes.find((n) => n.id === e.source);
+    const nDst = graph.nodes.find((n) => n.id === e.target);
+    const srcL = (nSrc?.label ?? "").toLowerCase();
+    const dstL = (nDst?.label ?? "").toLowerCase();
+    const genericLink = /^(tl-uh|tilelink)\s*\/\/(64|128)$/i.test(text);
+    const repeated = (textFreq.get(text) ?? 0) > 2;
+    const hasMajorBus = /(system bus|memory bus|periphery bus|front bus)/.test(srcL + " " + dstL);
+    const hasBackboneEndpoint = /(system bus|memory bus|front bus|shared l2 cache|dram interface)/.test(srcL + " " + dstL);
+    if (/l1 access path/i.test(text)) return "";
+    if (genericLink && repeated && (!hasMajorBus || !hasBackboneEndpoint)) return "";
     let bestI = 0;
     let bestLen = -1;
     for (let i = 0; i < pts.length - 1; i += 1) {
@@ -195,10 +228,10 @@ export function renderSvg(graph: Graph, cssPath?: string, rules?: RenderRules): 
     const lblKey = `${text.toLowerCase()}@${Math.round(mid.x / 60)}:${Math.round(mid.y / 40)}`;
     if (seenLabels.has(lblKey)) return "";
     seenLabels.add(lblKey);
-    const slotKey = `${Math.round(mid.x / 8)}:${Math.round(mid.y / 8)}`;
+    const slotKey = `${Math.round(mid.x / 10)}:${Math.round(mid.y / 10)}`;
     const slot = labelSlots.get(slotKey) ?? 0;
     labelSlots.set(slotKey, slot + 1);
-    let y = mid.y - 4 + slot * 11;
+    let y = mid.y - 8 + slot * 16;
     if (/l1 access path/i.test(text)) y -= 16;
     if (/core<->l1/i.test(text)) y += 16;
     const shortCritical = /(rocc command|^rocc$)/i.test(text);
@@ -206,14 +239,14 @@ export function renderSvg(graph: Graph, cssPath?: string, rules?: RenderRules): 
     for (const n of graph.nodes) {
       const nx = (n.x ?? 0) + (n.width ?? 0) / 2;
       const ny = (n.y ?? 0) + (n.height ?? 0) / 2;
-      if (Math.abs(nx - mid.x) < 90 && Math.abs(ny - y) < 20) {
-        y += ny <= y ? 18 : -18;
+      if (Math.abs(nx - mid.x) < 105 && Math.abs(ny - y) < 24) {
+        y += ny <= y ? 22 : -22;
       }
     }
     return `\n    <text class="edgeLabel" x="${mid.x}" y="${y}" text-anchor="middle">${esc(text)}</text>`;
   }).join("");
 
-  return `<?xml version="1.0" encoding="UTF-8"?>\n<svg xmlns="http://www.w3.org/2000/svg" xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape" width="${maxX}" height="${maxY}" viewBox="0 0 ${maxX} ${maxY}">\n<style>\n${css}\n</style>\n<defs>\n  <marker id="arrowhead" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto" markerUnits="strokeWidth">\n    <path d="M0,0 L8,3 L0,6 z" fill="#222"/>\n  </marker>\n  <marker id="arrowhead-inferred" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto" markerUnits="strokeWidth">\n    <path d="M0,0 L8,3 L0,6 z" fill="#6b7280"/>\n  </marker>\n  <marker id="arrowhead-bidi" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto" markerUnits="strokeWidth">\n    <path d="M0,0 L8,3 L0,6 z" fill="#1f4f96"/>\n  </marker>\n</defs>\n<g id="layer-blocks-bg" class="layer blocks" inkscape:groupmode="layer" inkscape:label="blocks-bg">\n  <g class="diagramContainers">${containers.rects}\n  </g>\n  <g class="clusters">${showClusters ? clusterBlockRects : ""}\n  </g>\n</g>\n<g id="layer-wires" class="layer wires" inkscape:groupmode="layer" inkscape:label="wires">${paths}\n</g>\n<g id="layer-blocks-fg" class="layer blocks" inkscape:groupmode="layer" inkscape:label="blocks-fg">\n  <g class="nodes">${rects}\n  </g>\n</g>\n<g id="layer-labels" class="layer labels" inkscape:groupmode="layer" inkscape:label="labels">\n  <g class="diagramContainerTitles">${containers.titles}\n  </g>\n  <g class="clusterTitles">${showClusters ? clusterTitles : ""}\n  </g>\n  <g class="nodeLabels">${nodeLabels}\n  </g>\n  <g class="edgeLabels">${edgeLabels}\n  </g>\n</g>\n</svg>`;
+  return `<?xml version="1.0" encoding="UTF-8"?>\n<svg xmlns="http://www.w3.org/2000/svg" xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape" width="${maxX}" height="${maxY}" viewBox="0 0 ${maxX} ${maxY}">\n<style>\n${css}\n.nodeLabel {\n  font-size: ${(12 * canvasScale).toFixed(1)}px;\n  font-weight: 600;\n  fill: #0f172a;\n}\n.edgeLabel {\n  font-size: ${(10 * canvasScale).toFixed(1)}px;\n  fill: #1f2937;\n  stroke-width: 2.6px;\n}\n.diagramContainerTitle {\n  font-size: ${(12 * canvasScale).toFixed(1)}px;\n  fill: #0f172a;\n}\n.edge.majorBus {\n  stroke-width: 2.2;\n  stroke: #1f4f96;\n}\n.edge.bidirectional.majorBus {\n  stroke-width: 2.4;\n}\n.edge.w32 { stroke-width: 1.0; }\n.edge.w64 { stroke-width: 1.35; }\n.edge.w128 { stroke-width: 1.9; }\n.edge.majorBus.w64 { stroke-width: 2.05; }\n.edge.majorBus.w128 { stroke-width: 2.55; }\n</style>\n<defs>\n  <marker id="arrowhead" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto" markerUnits="strokeWidth">\n    <path d="M0,0 L8,3 L0,6 z" fill="#222"/>\n  </marker>\n  <marker id="arrowhead-inferred" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto" markerUnits="strokeWidth">\n    <path d="M0,0 L8,3 L0,6 z" fill="#6b7280"/>\n  </marker>\n  <marker id="arrowhead-bidi" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto" markerUnits="strokeWidth">\n    <path d="M0,0 L8,3 L0,6 z" fill="#1f4f96"/>\n  </marker>\n</defs>\n<g id="layer-blocks-bg" class="layer blocks" inkscape:groupmode="layer" inkscape:label="blocks-bg">\n  <g class="diagramContainers">${containers.rects}\n  </g>\n  <g class="clusters">${showClusters ? clusterBlockRects : ""}\n  </g>\n</g>\n<g id="layer-wires" class="layer wires" inkscape:groupmode="layer" inkscape:label="wires">${paths}\n</g>\n<g id="layer-blocks-fg" class="layer blocks" inkscape:groupmode="layer" inkscape:label="blocks-fg">\n  <g class="nodes">${rects}\n  </g>\n</g>\n<g id="layer-labels" class="layer labels" inkscape:groupmode="layer" inkscape:label="labels">\n  <g class="diagramContainerTitles">${containers.titles}\n  </g>\n  <g class="clusterTitles">${showClusters ? clusterTitles : ""}\n  </g>\n  <g class="nodeLabels">${nodeLabels}\n  </g>\n  <g class="edgeLabels">${edgeLabels}\n  </g>\n</g>\n</svg>`;
 }
 
 const isMain = !!process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href;
