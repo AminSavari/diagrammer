@@ -239,19 +239,28 @@ function routeOrthEdges(graph: Graph): Graph {
     if ((is(s, /system bus/) && is(t, /periphery bus/)) || (is(s, /periphery bus/) && is(t, /system bus/))) {
       const p0 = sidePoint(s, is(s, /system bus/) ? "bottom" : "top");
       const p1 = sidePoint(t, is(t, /system bus/) ? "bottom" : "top");
-      const tapX = Math.max(p0.x, p1.x) + 20;
+      const tapX = cx("merged:label:system_bus_tl_uh_128_bit") || ((p0.x + p1.x) / 2);
       return [p0, { x: tapX, y: p0.y }, { x: tapX, y: p1.y }, p1];
     }
 
-    // Peripheral fanout uses lower lane, preventing overlap with datapath.
+    // Peripheral fanout uses short orthogonal taps (avoid large rectangular detours).
     if (is(s, /periphery bus/) || is(t, /periphery bus/)) {
       const bus = is(s, /periphery bus/) ? s : t;
       const dev = bus === s ? t : s;
-      const p0 = sidePoint(bus, "right");
-      const p1 = sidePoint(dev, "left");
-      // Keep periphery fanout on a dedicated mid-lane so wires avoid device rectangles.
-      const laneY = socBand.yBot;
-      return [p0, { x: p0.x + 45, y: p0.y }, { x: p0.x + 45, y: laneY }, { x: p1.x - 45, y: laneY }, { x: p1.x - 45, y: p1.y }, p1];
+      const busToDev = e.source === bus;
+      const pBus = sidePoint(bus, "right");
+      const pDev = sidePoint(dev, "left");
+      const span = pDev.x - pBus.x;
+      const tapX = span > 220 ? (pDev.x - 26) : Math.min(pDev.x - 28, pBus.x + 46);
+      if (busToDev) {
+        return [pBus, { x: tapX, y: pBus.y }, { x: tapX, y: pDev.y }, pDev];
+      }
+      if (is(dev, /debug module/)) {
+        const laneY = pBus.y + 145;
+        const x0 = pDev.x - 28;
+        return [pDev, { x: x0, y: pDev.y }, { x: x0, y: laneY }, { x: pBus.x, y: laneY }, pBus];
+      }
+      return [pDev, { x: tapX, y: pDev.y }, { x: tapX, y: pBus.y }, pBus];
     }
 
     return undefined;
@@ -333,9 +342,9 @@ function applySocL1Floorplan(graph: Graph): Graph {
   set(/dram interface/, 1860, 240);
 
   set(/interrupt controller/, 1390, 500);
-  set(/timer and ipi/, 1610, 500);
+  set(/timer and ipi/, 1540, 500);
   set(/uart console/, 1390, 620);
-  set(/debug module/, 1610, 620);
+  set(/debug module/, 1540, 620);
 
   // Keep any remaining nodes in a fallback strip.
   let fy = 40;
