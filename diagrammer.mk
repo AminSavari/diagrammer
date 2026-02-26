@@ -5,6 +5,8 @@
 HELP_COMMANDS += \
 "   graphml                    = generate (and locate) Diplomacy GraphML for CONFIG" \
 "   diagrams                   = end-to-end pipeline: graphml -> svg -> pdf (set LEVEL=L1/L2/L3/L4)" \
+"   ai-diagram-setup           = install Python dependency for ai-diagram target" \
+"   ai-diagram                 = diagrams + AI-rendered PNG (works for any CONFIG/LEVEL/BLOCK)" \
 "   diagram-levels             = emit hierarchy levels report JSON (design + per-L1-block depth)" \
 "   diagram                    = generate SVG + layout JSON from Diplomacy GraphML for CONFIG" \
 "   diagram-quick              = generate SVG + layout JSON using an existing GRAPHML_FILE only" \
@@ -26,6 +28,7 @@ DIAGRAMMER_L3_MAIN ?= $(DIAGRAMMER_DIR)/dist/l3_from_hierarchy.js
 DIAGRAMMER_L4_MAIN ?= $(DIAGRAMMER_DIR)/dist/l4_from_hierarchy.js
 DIAGRAMMER_LEVELS_MAIN ?= $(DIAGRAMMER_DIR)/dist/levels_from_hierarchy.js
 DIAGRAMMER_EXPORT_PDF ?= $(DIAGRAMMER_DIR)/dist/export_pdf.js
+DIAGRAMMER_AI_MAIN ?= $(DIAGRAMMER_DIR)/src/ai_diagrammer.py
 DIAGRAM_LEVELS_JSON ?= $(DIAGRAM_OUT_DIR)/levels.json
 DIAGRAM_STAMP ?= $(DIAGRAM_OUT_DIR)/.$(long_name).diagram.stamp
 DIAGRAMMER_NPM_STAMP ?= $(DIAGRAMMER_DIR)/node_modules/.diagrammer-npm.stamp
@@ -57,6 +60,10 @@ DIAGRAMS_SVG ?= $(DIAGRAM_OUT_DIR)/$(DIAGRAM_LEVEL_BASE).svg
 DIAGRAMS_LAYOUT ?= $(DIAGRAM_OUT_DIR)/$(DIAGRAM_LEVEL_BASE).layout.json
 DIAGRAMS_PDF ?= $(DIAGRAM_OUT_DIR)/$(DIAGRAM_LEVEL_BASE).pdf
 DIAGRAMS_STAMP ?= $(DIAGRAM_OUT_DIR)/.$(DIAGRAM_LEVEL_BASE).diagram.stamp
+DIAGRAMS_AI_PROMPT ?= $(DIAGRAM_OUT_DIR)/$(DIAGRAM_LEVEL_BASE).ai.prompt.txt
+DIAGRAMS_AI_IMAGE ?= $(DIAGRAM_OUT_DIR)/$(DIAGRAM_LEVEL_BASE).ai.png
+DIAGRAMS_AI_MODEL ?= gpt-image-1
+DIAGRAMS_AI_SIZE ?= 1536x1024
 
 .PHONY: graphml
 graphml: $(GRAPHML_FILE)
@@ -236,6 +243,42 @@ diagram-levels: $(DIAGRAMMER_MAIN)
 .PHONY: diagram-test
 diagram-test: $(DIAGRAMMER_NPM_STAMP)
 	cd $(DIAGRAMMER_DIR) && npm test
+
+.PHONY: ai-diagram-setup
+ai-diagram-setup:
+	pip install -r "$(DIAGRAMMER_DIR)/requirements-ai.txt"
+
+.PHONY: ai-diagram
+ai-diagram: diagrams
+	@if [ -z "$(DIAGRAM_LEVEL_BASE)" ]; then \
+		echo "ERROR: Unsupported LEVEL='$(LEVEL)'. Use LEVEL=L1, LEVEL=L2, LEVEL=L3, or LEVEL=L4." 1>&2; \
+		exit 1; \
+	fi
+	@if [ ! -f "$(DIAGRAMMER_AI_MAIN)" ]; then \
+		echo "ERROR: AI diagram script not found: $(DIAGRAMMER_AI_MAIN)" 1>&2; \
+		exit 1; \
+	fi
+	@python3 -c "import openai" 2>/dev/null || { \
+		echo "ERROR: Missing Python package 'openai'."; \
+		echo "Run: pip install -r $(DIAGRAMMER_DIR)/requirements-ai.txt"; \
+		exit 1; \
+	}
+	@if [ -z "$$OPENAI_API_KEY" ]; then \
+		echo "ERROR: OPENAI_API_KEY is not set."; \
+		exit 1; \
+	fi
+	python3 "$(DIAGRAMMER_AI_MAIN)" \
+		--input-svg "$(DIAGRAMS_SVG)" \
+		--layout-json "$(DIAGRAMS_LAYOUT)" \
+		--config "$(CONFIG)" \
+		--level "$(LEVEL)" \
+		--block "$(BLOCK)" \
+		--prompt-out "$(DIAGRAMS_AI_PROMPT)" \
+		--image-out "$(DIAGRAMS_AI_IMAGE)" \
+		--model "$(DIAGRAMS_AI_MODEL)" \
+		--size "$(DIAGRAMS_AI_SIZE)"
+	@echo "AI prompt: $(DIAGRAMS_AI_PROMPT)"
+	@echo "AI image : $(DIAGRAMS_AI_IMAGE)"
 
 .PHONY: diagram-pdf
 diagram-pdf: $(DIAGRAM_PDF)

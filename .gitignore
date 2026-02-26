@@ -19,9 +19,12 @@ yarn-error.log*
 *.svg
 *.pdf
 *.layout.json
+*.ai.prompt.txt
 # PNG outputs are ignored, except project logo
 *.png
 !diagrammer_logo.png
+out/
+prompts/
 
 # Test scratch
 tests/.tmp/
